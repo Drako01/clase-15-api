@@ -7,8 +7,6 @@ services:
     dockerfilePath: ./Dockerfile
     numInstances: 1
     autoDeploy: true
-    deployToRegions:
-      - oregon
     envVars:
       - key: SPRING_DATASOURCE_URL
         fromDatabase:
