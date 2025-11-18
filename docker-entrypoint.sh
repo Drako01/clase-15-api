@@ -39,6 +39,12 @@ if [ -n "${SPRING_DATASOURCE_URL:-}" ]; then
   export SPRING_DATASOURCE_URL
 fi
 
+if [ -z "${SPRING_DATASOURCE_URL:-}" ]; then
+  echo "ERROR: No hay ninguna URL de base de datos en SPRING_DATASOURCE_URL/DATABASE_URL/DATABASE_INTERNAL_URL." >&2
+  echo "Configura la BD en Render (o ejecuta 'render blueprint deploy') antes de redeployar el servicio." >&2
+  exit 1
+fi
+
 echo "SPRING_DATASOURCE_URL (resolved): ${SPRING_DATASOURCE_URL:-<empty>}"
 
 exec java $JAVA_OPTS -Dserver.port="${PORT:-8080}" -jar app.jar
