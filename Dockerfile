@@ -16,6 +16,8 @@ ENV JAVA_OPTS=""
 ENV PORT=8080
 
 COPY --from=builder /workspace/target/*.jar app.jar
+COPY docker-entrypoint.sh ./docker-entrypoint.sh
+RUN chmod +x docker-entrypoint.sh
 EXPOSE 8080
 
-CMD [ "sh", "-c", "exec java $JAVA_OPTS -Dserver.port=${PORT:-8080} -jar app.jar" ]
+ENTRYPOINT [ "./docker-entrypoint.sh" ]
