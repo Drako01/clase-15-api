@@ -1,7 +1,27 @@
 #!/bin/sh
 set -eu
 
-# Prefer Render-provided URLs; fallback to defaults defined in application.properties.
+log_connection_vars() {
+  echo "SPRING_DATASOURCE_URL (initial): ${SPRING_DATASOURCE_URL:-<empty>}"
+  echo "DATABASE_URL: ${DATABASE_URL:-<empty>}"
+  echo "DATABASE_INTERNAL_URL: ${DATABASE_INTERNAL_URL:-<empty>}"
+}
+
+to_jdbc_url() {
+  raw="$1"
+  # Remove scheme.
+  raw="${raw#postgres://}"
+  raw="${raw#postgresql://}"
+  # Strip credentials (user:pass@) if present.
+  host_and_path="${raw#*@}"
+  if [ "$host_and_path" = "$raw" ]; then
+    host_and_path="$raw"
+  fi
+  printf 'jdbc:postgresql://%s' "$host_and_path"
+}
+
+log_connection_vars
+
 if [ -z "${SPRING_DATASOURCE_URL:-}" ]; then
   if [ -n "${DATABASE_URL:-}" ]; then
     SPRING_DATASOURCE_URL="$DATABASE_URL"
@@ -10,17 +30,15 @@ if [ -z "${SPRING_DATASOURCE_URL:-}" ]; then
   fi
 fi
 
-# Render exposes postgres:// URIs, but the JDBC driver expects jdbc:postgresql://.
 if [ -n "${SPRING_DATASOURCE_URL:-}" ]; then
   case "$SPRING_DATASOURCE_URL" in
-    postgres://*)
-      SPRING_DATASOURCE_URL="jdbc:postgresql://${SPRING_DATASOURCE_URL#postgres://}"
-      ;;
-    postgresql://*)
-      SPRING_DATASOURCE_URL="jdbc:postgresql://${SPRING_DATASOURCE_URL#postgresql://}"
+    postgres://*|postgresql://*)
+      SPRING_DATASOURCE_URL="$(to_jdbc_url "$SPRING_DATASOURCE_URL")"
       ;;
   esac
   export SPRING_DATASOURCE_URL
 fi
+
+echo "SPRING_DATASOURCE_URL (resolved): ${SPRING_DATASOURCE_URL:-<empty>}"
 
 exec java $JAVA_OPTS -Dserver.port="${PORT:-8080}" -jar app.jar
